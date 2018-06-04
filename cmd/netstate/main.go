@@ -20,8 +20,13 @@ import (
 )
 
 var (
-	port   = flag.Int("port", 8080, "port")
-	dbPath = flag.String("db", "netstate.db", "db path")
+	port         = flag.Int("port", 8080, "port")
+	dbPath       = flag.String("db", "netstate.db", "db path")
+	tlsCertPath  = flag.String("tlsCertPath", "", "TLS Certificate file")
+	tlsKeyPath   = flag.String("tlsKeyPath", "", "TLS Key file")
+	tlsHosts     = flag.String("tlsHosts", "", "TLS Hosts file")
+	tlsCreate    = flag.Bool("tlsCreate", false, "If true, generate a new TLS cert/key files")
+	tlsOverwrite = flag.Bool("tlsOverwrite", false, "If true, overwrite existing TLS cert/key files")
 )
 
 func (s *serv) Process(ctx context.Context) error {

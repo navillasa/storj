@@ -14,8 +14,11 @@ import (
 	monkit "gopkg.in/spacemonkeygo/monkit.v2"
 
 	"storj.io/storj/pkg/netstate"
+	"storj.io/storj/pkg/overlay"
 	"storj.io/storj/pkg/process"
+	"storj.io/storj/pkg/utils"
 	proto "storj.io/storj/protos/netstate"
+	oproto "storj.io/storj/protos/overlay"
 	"storj.io/storj/storage/boltdb"
 )
 
@@ -36,13 +39,31 @@ func (s *serv) Process(ctx context.Context) error {
 	}
 	defer bdb.Close()
 
+	// Configure TLS for grpcServer
+	t := &utils.TLSFileOptions{
+		CertRelPath: &tlsCertPath,
+		KeyRelPath:  &tlsKeyPath,
+		Create:      &tlsCreate,
+		Overwrite:   &tlsOverwrite,
+		Hosts:       &tlsHosts,
+	}
+
+	creds, err := utils.NewServerTLSFromFile(t)
+	if err != nil {
+		return nil, err
+	}
+
+	credsOption := grpc.Creds(creds)
+	grpcServer := grpc.NewServer(credsOption)
+	oproto.RegisterOverlayServer(grpcServer, &overlay.Overlay{})
+
 	// start grpc server
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
+		s.logger.Error("Failed to initialize TCP connection", zap.Error(err))
 		return err
 	}
 
-	grpcServer := grpc.NewServer()
 	proto.RegisterNetStateServer(grpcServer, netstate.NewServer(bdb, s.logger))
 	s.logger.Debug(fmt.Sprintf("server listening on port %d", *port))
 

@@ -14,11 +14,11 @@ import (
 	"strings"
 
 	"github.com/gabriel-vasile/mimetype"
+	minio "github.com/minio/minio/cmd"
 	"github.com/spf13/cobra"
-	"go.uber.org/zap"
 
 	"storj.io/storj/pkg/paths"
-	"storj.io/storj/pkg/storage/buckets"
+	"storj.io/storj/storage"
 )
 
 var (
@@ -28,7 +28,7 @@ var (
 func init() {
 	serveCmd := addCmd(&cobra.Command{
 		Use:   "serve",
-		Short: "Handles any requests and writes response to browser",
+		Short: "Serves objects to the browser",
 		RunE:  serve,
 	})
 	addrFlag = serveCmd.Flags().String("addr", ":8080", "address to listen on")
@@ -44,66 +44,66 @@ func serve(cmd *cobra.Command, args []string) error {
 
 func serveGet(w http.ResponseWriter, r *http.Request) {
 	pathParts := strings.SplitN(r.URL.Path, "/", 3)
+	if len(pathParts) != 3 {
+		http.Error(w, "Error parsing bucket and path. Make sure to use format localhost:8080/bucket/path.", http.StatusBadRequest)
+		log.Println("Error parsing bucket and path. Make sure to use format localhost:8080/bucket/path.")
+		return
+	}
 	newURL := &url.URL{
-		Host:   pathParts[1],
 		Scheme: "sj",
+		Host:   pathParts[1],
 		Path:   pathParts[2],
 	}
 
-	rr, err := handleTheGrab(newURL)
-	//first arg in url path needs to be set as host, everything else is the path
+	rr, err := grabObj(newURL)
 	if err != nil {
-		http.Error(w, "bad request: err grabbing response", http.StatusBadRequest)
-		log.Fatal("err grabbing response", err)
+		if storage.ErrKeyNotFound.Has(err) {
+			http.Error(w, "404 Object not found: "+r.URL.Path, http.StatusNotFound)
+			log.Println("Error object not found: " + r.URL.Path)
+			return
+		}
+		if (err == minio.BucketNotFound{Bucket: pathParts[1]}) {
+			http.Error(w, "404 "+err.Error(), http.StatusNotFound)
+			log.Println(err)
+			return
+		}
+		http.Error(w, "500 error downloading object", http.StatusInternalServerError)
+		log.Println("Error downloading object: ", err)
 		return
 	}
 
 	b, err := ioutil.ReadAll(rr)
 	if err != nil {
-		http.Error(w, "bad request: err reading response", http.StatusBadRequest)
-		log.Fatal("err reading response", err)
+		http.Error(w, "500 error reading object's reader", http.StatusInternalServerError)
+		log.Fatal("Error reading object's reader", err)
+		return
 	}
-
 	mime, _ := mimetype.Detect(b)
-	if err != nil {
-		http.Error(w, "bad request: err grabbing response", http.StatusBadRequest)
-		log.Fatal("err grabbing response", err)
-	}
-	w.Header().Set("Content-Type", mime)
 
+	w.Header().Set("Content-Type", mime)
 	_, err = w.Write(b)
 	if err != nil {
-		log.Fatal("err writing response", zap.Error(err))
+		http.Error(w, "500 error writing object", http.StatusInternalServerError)
+		log.Fatal("Error writing object", err)
+		return
 	}
 }
 
-// handleTheGrab gets ready to grab
-func handleTheGrab(src *url.URL) (io.ReadCloser, error) {
+// grabObj returns a S3 compatible object
+func grabObj(src *url.URL) (io.ReadCloser, error) {
 	ctx := context.Background()
 	bs, err := cfg.BucketStore(ctx)
 	if err != nil {
 		return nil, err
 	}
 	if src.Host == "" {
-		return nil, fmt.Errorf("No bucket specified. Please use format sj://bucket/")
+		return nil, fmt.Errorf("no bucket specified: please use format localhost:8080/bucket/path")
 	}
-	r, err := grabObj(ctx, bs, src)
+	o, err := bs.GetObjectStore(ctx, src.Host)
 	if err != nil {
 		return nil, err
 	}
-	return r, nil
-}
-
-// grabObj returns s3 compatible object at args[0]
-func grabObj(ctx context.Context, bs buckets.Store, srcObj *url.URL) (io.ReadCloser, error) {
-	if srcObj.Scheme == "" {
-		return nil, fmt.Errorf("Invalid source")
-	}
-	o, err := bs.GetObjectStore(ctx, srcObj.Host)
-	if err != nil {
-		return nil, err
-	}
-	rr, _, err := o.Get(ctx, paths.New(srcObj.Path))
+	rr, _, err := o.Get(ctx, paths.New(src.Path))
 	if err != nil {
 		return nil, err
 	}

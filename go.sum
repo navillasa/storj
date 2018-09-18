@@ -77,6 +77,8 @@ github.com/fatih/structtag v1.0.0 h1:pTHj65+u3RKWYPSGaU290FpI/dXxTaHdVwVwbcPKmEc
 github.com/fatih/structtag v1.0.0/go.mod h1:IKitwq45uXL/yqi5mYghiD3w9H6eTOvI9vnk8tXMphA=
 github.com/fsnotify/fsnotify v1.4.7 h1:IXs+QLmnXW2CcXuY+8Mzv/fWEsPGWxqefPtCP5CnV9I=
 github.com/fsnotify/fsnotify v1.4.7/go.mod h1:jwhsz4b93w/PPRr/qN1Yymfu8t87LnFCMoQvtojpjFo=
+github.com/gabriel-vasile/mimetype v0.0.0-20180917084233-57f2925b6c33 h1:wjSbQbbBFbM+toE0F9W7Bvz0tXjlw2I6rQVje91mVL8=
+github.com/gabriel-vasile/mimetype v0.0.0-20180917084233-57f2925b6c33/go.mod h1:kMJbg3SlWZCsj4R73F1WDzbT9AyGCOVmUtIxxwO5pmI=
 github.com/garyburd/redigo v1.0.1-0.20170216214944-0d253a66e6e1 h1:YmyuMm99D7kezPc0ZVWYnaUIWfMKR81lVVXttKTnDbw=
 github.com/garyburd/redigo v1.0.1-0.20170216214944-0d253a66e6e1/go.mod h1:NR3MbYisc3/PwhQ00EMzDiPmrwpPxAn5GI05/YaO1SY=
 github.com/garyburd/redigo v2.0.0+incompatible h1:Gb5TnQbf/SfRTYd07ZgodtGEDhNOviGCxoyZnyBDuNU=
@@ -151,6 +153,8 @@ github.com/jtolds/monkit-hw v0.0.0-20180222001630-9b6edb34372a h1:eUGsb9yPSfT+PQ
 github.com/jtolds/monkit-hw v0.0.0-20180222001630-9b6edb34372a/go.mod h1:BFDxc5CvbSvpRxqCKsFfKc+gKTsmpG6Y3Z55GcAmzDg=
 github.com/jtolds/monkit-hw v0.0.0-20180827162413-5a254051f35d h1:+TWXq24sHXNI6DVobckzgJCbCvb4bYjDZuKRR+d/Nuw=
 github.com/jtolds/monkit-hw v0.0.0-20180827162413-5a254051f35d/go.mod h1:1liUiYZzx8ZoPTfZrBE2q8DFRDPafts0GGjslOtcZcw=
+github.com/julienschmidt/httprouter v0.0.0-20180715161854-348b672cd90d h1:of6+TpypLAaiv4JxgH5aplBZnt0b65B4v4c8q5oy+Sk=
+github.com/julienschmidt/httprouter v0.0.0-20180715161854-348b672cd90d/go.mod h1:SYymIcj16QtmaHHD7aYtjjsJG7VTCxuUUipMqKk8s4w=
 github.com/klauspost/compress v1.4.0 h1:8nsMz3tWa9SWWPL60G1V6CUsf4lLjWLTNEtibhe8gh8=
 github.com/klauspost/compress v1.4.0/go.mod h1:RyIbtBH6LamlWaDj8nUwkbUhJ87Yi3uG0guNDohfE1A=
 github.com/klauspost/cpuid v0.0.0-20180405133222-e7e905edc00e h1:+lIPJOWl+jSiJOc70QXJ07+2eg2Jy2EC7Mi11BWujeM=

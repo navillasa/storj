@@ -34,6 +34,7 @@ require (
 	github.com/fatih/gomodifytags v0.0.0-20180826164257-7987f52a7108 // indirect
 	github.com/fatih/structs v1.0.0 // indirect
 	github.com/fsnotify/fsnotify v1.4.7 // indirect
+	github.com/gabriel-vasile/mimetype v0.0.0-20180917084233-57f2925b6c33
 	github.com/garyburd/redigo v1.0.1-0.20170216214944-0d253a66e6e1 // indirect
 	github.com/go-ini/ini v1.38.1 // indirect
 	github.com/go-redis/redis v0.0.0-20180417061816-9ccc23344a52
@@ -66,6 +67,7 @@ require (
 	github.com/jbenet/go-base58 v0.0.0-20150317085156-6237cf65f3a6
 	github.com/joyent/triton-go v0.0.0-20180628001255-830d2b111e62 // indirect
 	github.com/jtolds/monkit-hw v0.0.0-20180827162413-5a254051f35d
+	github.com/julienschmidt/httprouter v0.0.0-20180715161854-348b672cd90d
 	github.com/klauspost/compress v1.4.0 // indirect
 	github.com/klauspost/cpuid v0.0.0-20180405133222-e7e905edc00e // indirect
 	github.com/klauspost/crc32 v0.0.0-20170628072449-bab58d77464a // indirect

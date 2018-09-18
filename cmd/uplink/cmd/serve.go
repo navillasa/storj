@@ -64,6 +64,9 @@ func serve(cmd *cobra.Command, args []string) error {
 func start(ro *routes) *httprouter.Router {
 	router := httprouter.New()
 	router.GET("/", ro.serveGet)
+	// .POST later, which should add a new file (then website can reupload back into network)
+	// .PUT can check that thing exists first then do the post
+	// r.URL.Path is how to figure out what bucket/file (opaque string needs to be split)
 	return router
 }
 
@@ -75,19 +78,19 @@ func (ro *routes) serveGet(w http.ResponseWriter, r *http.Request, ps httprouter
 		return
 	}
 
-	// horrible duplication:
-	// var buf bytes.Buffer
-	// tee := io.TeeReader(rr, &buf)
-	mime, _, err := mimetype.DetectReader(rr)
+	b, err := ioutil.ReadAll(rr)
+	if err != nil {
+		http.Error(w, "bad request: err reading response", http.StatusBadRequest)
+		log.Fatal("err reading response", err)
+	}
+
+	mime, _ := mimetype.Detect(b)
 	if err != nil {
 		http.Error(w, "bad request: err grabbing response", http.StatusBadRequest)
 		log.Fatal("err grabbing response", err)
 	}
 	w.Header().Set("Content-Type", mime)
-	// j, _ := json.Marshal(mime)
-	// w.Write(j)
 
-	b, err := ioutil.ReadAll(rr)
 	_, err = w.Write(b)
 	if err != nil {
 		log.Fatal("err writing response", zap.Error(err))

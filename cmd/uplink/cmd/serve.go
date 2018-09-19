@@ -38,17 +38,17 @@ func init() {
 }
 
 func serve(cmd *cobra.Command, args []string) error {
-	http.HandleFunc("/", serveGet)
+	http.HandleFunc("/", serveEverything)
 	fmt.Printf("Now listening on %s\n", *addrFlag)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf("%s", *addrFlag), nil))
 
 	return nil
 }
 
-func serveGet(w http.ResponseWriter, r *http.Request) {
+func serveEverything(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
 		r.ParseMultipartForm(32 << 20)
-		file, _, err := r.FormFile("uploadfile")
+		file, handler, err := r.FormFile("uploadfile")
 		if err != nil {
 			log.Println(err)
 			return
@@ -66,8 +66,7 @@ func serveGet(w http.ResponseWriter, r *http.Request) {
 		destObj := &url.URL{
 			Scheme: "sj",
 			Host:   pathParts[1],
-			// Path:   handler.Filename,
-			Path: pathParts[2],
+			Path:   handler.Filename,
 		}
 		log.Printf("%#v\n", destObj.Path)
 

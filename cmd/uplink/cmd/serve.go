@@ -12,12 +12,15 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/gabriel-vasile/mimetype"
 	minio "github.com/minio/minio/cmd"
 	"github.com/spf13/cobra"
 
 	"storj.io/storj/pkg/paths"
+	"storj.io/storj/pkg/storage/meta"
+	"storj.io/storj/pkg/storage/objects"
 	"storj.io/storj/storage"
 )
 
@@ -43,49 +46,125 @@ func serve(cmd *cobra.Command, args []string) error {
 }
 
 func serveGet(w http.ResponseWriter, r *http.Request) {
-	pathParts := strings.SplitN(r.URL.Path, "/", 3)
-	if len(pathParts) != 3 {
-		http.Error(w, "Error parsing bucket and path. Make sure to use format localhost:8080/bucket/path.", http.StatusBadRequest)
-		log.Println("Error parsing bucket and path. Make sure to use format localhost:8080/bucket/path.")
-		return
-	}
-	newURL := &url.URL{
-		Scheme: "sj",
-		Host:   pathParts[1],
-		Path:   pathParts[2],
-	}
-
-	rr, err := grabObj(newURL)
-	if err != nil {
-		if storage.ErrKeyNotFound.Has(err) {
-			http.Error(w, "404 Object not found: "+r.URL.Path, http.StatusNotFound)
-			log.Println("Error object not found: " + r.URL.Path)
-			return
-		}
-		if (err == minio.BucketNotFound{Bucket: pathParts[1]}) {
-			http.Error(w, "404 "+err.Error(), http.StatusNotFound)
+	if r.Method == "POST" {
+		r.ParseMultipartForm(32 << 20)
+		file, _, err := r.FormFile("uploadfile")
+		if err != nil {
 			log.Println(err)
 			return
 		}
-		http.Error(w, "500 error downloading object", http.StatusInternalServerError)
-		log.Println("Error downloading object: ", err)
-		return
-	}
+		defer file.Close()
 
-	b, err := ioutil.ReadAll(rr)
-	if err != nil {
-		http.Error(w, "500 error reading object's reader", http.StatusInternalServerError)
-		log.Fatal("Error reading object's reader", err)
-		return
-	}
-	mime, _ := mimetype.Detect(b)
+		pathParts := strings.SplitN(r.URL.Path, "/", 3)
+		if len(pathParts) != 3 {
+			http.Error(w, "Error parsing bucket and path. Make sure to use format localhost:8080/bucket/path.", http.StatusBadRequest)
+			log.Println("Error parsing bucket and path. Make sure to use format localhost:8080/bucket/path.")
+			return
+		}
+		log.Printf("%#v\n", pathParts)
 
-	w.Header().Set("Content-Type", mime)
-	_, err = w.Write(b)
-	if err != nil {
-		http.Error(w, "500 error writing object", http.StatusInternalServerError)
-		log.Fatal("Error writing object", err)
-		return
+		destObj := &url.URL{
+			Scheme: "sj",
+			Host:   pathParts[1],
+			// Path:   handler.Filename,
+			Path: pathParts[2],
+		}
+		log.Printf("%#v\n", destObj.Path)
+
+		ctx := context.Background()
+		bs, err := cfg.BucketStore(ctx)
+		if err != nil {
+			return
+		}
+
+		o, err := bs.GetObjectStore(ctx, destObj.Host)
+		if err != nil {
+			return
+		}
+
+		meta := objects.SerializableMeta{}
+		expTime := time.Time{}
+
+		_, err = o.Put(ctx, paths.New(destObj.Path), file, meta, expTime)
+		if err != nil {
+			return
+		}
+	} else {
+		pathParts := strings.SplitN(r.URL.Path, "/", 3)
+		if len(pathParts) == 2 {
+			ctx := context.Background()
+			bs, err := cfg.BucketStore(ctx)
+			if err != nil {
+				return
+			}
+			src := &url.URL{
+				Scheme: "sj",
+				Host:   pathParts[1],
+			}
+			o, err := bs.GetObjectStore(ctx, src.Host)
+			if err != nil {
+				return
+			}
+			startAfter := paths.New("")
+			for {
+				items, more, err := o.List(ctx, paths.New(src.Path), startAfter, nil, false, 0, meta.Modified|meta.Size)
+				if err != nil {
+					return
+				}
+				var writeMe []string
+				for _, object := range items {
+					path := object.Path.String()
+					if object.IsPrefix {
+						fmt.Println("PRE", path+"/")
+					} else {
+						writeMe = append(writeMe, fmt.Sprintf("%v\n", path))
+					}
+				}
+				fmt.Fprintf(w, strings.Join(writeMe, ""))
+				if !more {
+					break
+				}
+				startAfter = items[len(items)-1].Path
+			}
+			return
+		}
+		if len(pathParts) == 3 {
+			newURL := &url.URL{
+				Scheme: "sj",
+				Host:   pathParts[1],
+				Path:   pathParts[2],
+			}
+			rr, err := grabObj(newURL)
+			if err != nil {
+				if storage.ErrKeyNotFound.Has(err) {
+					http.Error(w, "404 Object not found: "+r.URL.Path, http.StatusNotFound)
+					log.Println("Error object not found: " + r.URL.Path)
+					return
+				}
+				if (err == minio.BucketNotFound{Bucket: pathParts[1]}) {
+					http.Error(w, "404 "+err.Error(), http.StatusNotFound)
+					log.Println(err)
+					return
+				}
+				http.Error(w, "500 error downloading object", http.StatusInternalServerError)
+				log.Println("Error downloading object: ", err)
+				return
+			}
+			b, err := ioutil.ReadAll(rr)
+			if err != nil {
+				http.Error(w, "500 error reading object's reader", http.StatusInternalServerError)
+				log.Fatal("Error reading object's reader", err)
+				return
+			}
+			mime, _ := mimetype.Detect(b)
+			w.Header().Set("Content-Type", mime)
+			_, err = w.Write(b)
+			if err != nil {
+				http.Error(w, "500 error writing object", http.StatusInternalServerError)
+				log.Fatal("Error writing object", err)
+				return
+			}
+		}
 	}
 }
 
